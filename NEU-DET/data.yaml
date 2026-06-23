@@ -2,4 +2,4 @@ train: ../NEU-DET/train/images
 val: ../NEU-DET/valid/images
 
 nc: 6
-names: ['crazing', 'inclusion', 'patches', 'pitted_surface', 'rolled-in_scale', 'scratches']
+names: ["crazing", "inclusion", "patches", "pitted_surface", "rolled-in_scale", "scratches"]
