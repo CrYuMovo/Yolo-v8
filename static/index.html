@@ -3,288 +3,500 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>工业缺陷检测系统</title>
+    <title>工业缺陷检测系统 — YOLOv5/v8</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10.6.0/dist/mermaid.min.js"></script>
     <style>
         :root {
-            --primary-color: #2563eb;
-            --primary-hover: #1d4ed8;
-            --bg-color: #f3f4f6;
-            --card-bg: #ffffff;
-            --text-main: #1f2937;
-            --text-sub: #6b7280;
-            --border-color: #e5e7eb;
+            --primary:#2563eb;--primary-hover:#1d4ed8;--bg:#f1f5f9;--card-bg:#ffffff;
+            --text:#1e293b;--text-sub:#64748b;--border:#e2e8f0;--danger:#ef4444;
+            --success:#22c55e;--warning:#f59e0b;--nav-width:220px;--header-h:56px;
         }
-
-        * { box-sizing: border-box; margin: 0; padding: 0; }
-
-        body {
-            font-family: 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-            background-color: var(--bg-color);
-            color: var(--text-main);
-            line-height: 1.6;
-            padding: 20px;
-        }
-
-        .header {
-            text-align: center;
-            margin-bottom: 30px;
-        }
-        .header h1 { font-size: 2rem; margin-bottom: 8px; }
-        .header p { color: var(--text-sub); }
-
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-            display: grid;
-            grid-template-columns: 350px 1fr;
-            gap: 24px;
-        }
-
-        /* 卡片通用样式 */
-        .card {
-            background: var(--card-bg);
-            border-radius: 12px;
-            padding: 24px;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
-            border: 1px solid var(--border-color);
-        }
-
-        .card h3 {
-            font-size: 1.1rem;
-            margin-bottom: 16px;
-            padding-bottom: 12px;
-            border-bottom: 1px solid var(--border-color);
-        }
-
-        /* 表单控件 */
-        .form-group { margin-bottom: 18px; }
-        .form-group label { display: block; font-weight: 600; margin-bottom: 6px; font-size: 0.9rem; }
-
-        input[type="file"] {
-            width: 100%;
-            padding: 8px;
-            border: 1px dashed var(--border-color);
-            border-radius: 8px;
-            cursor: pointer;
-            font-size: 0.85rem;
-        }
-
-        .slider-container { display: flex; align-items: center; gap: 10px; }
-        input[type="range"] { flex: 1; accent-color: var(--primary-color); }
-        .slider-value {
-            min-width: 40px;
-            text-align: right;
-            font-weight: bold;
-            color: var(--primary-color);
-            font-size: 0.9rem;
-        }
-
-        button#detectBtn {
-            width: 100%;
-            padding: 14px;
-            background: var(--primary-color);
-            color: white;
-            border: none;
-            border-radius: 8px;
-            font-size: 1rem;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.2s;
-            margin-top: 10px;
-        }
-        button#detectBtn:hover:not(:disabled) { background: var(--primary-hover); transform: translateY(-1px); }
-        button#detectBtn:disabled { background: #9ca3af; cursor: not-allowed; transform: none; }
-
-        /* 图片预览区 */
-        .image-wrapper {
-            width: 100%;
-            min-height: 300px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            background: #fafafa;
-            border-radius: 8px;
-            border: 1px solid var(--border-color);
-            overflow: hidden;
-        }
-        .image-wrapper img { max-width: 100%; max-height: 500px; object-fit: contain; }
-        .placeholder { color: var(--text-sub); font-size: 0.9rem; }
-
-        /* 结果统计面板 */
-        .stats-panel {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-            gap: 12px;
-            margin-top: 16px;
-        }
-        .stat-item {
-            background: #eff6ff;
-            padding: 12px;
-            border-radius: 8px;
-            text-align: center;
-        }
-        .stat-item .num { font-size: 1.5rem; font-weight: bold; color: var(--primary-color); }
-        .stat-item .label { font-size: 0.8rem; color: var(--text-sub); margin-top: 4px; }
-
-        /* Loading 遮罩 */
-        .loading-overlay {
-            position: fixed; top: 0; left: 0; right: 0; bottom: 0;
-            background: rgba(255,255,255,0.8);
-            display: none; align-items: center; justify-content: center;
-            z-index: 1000; font-size: 1.2rem; font-weight: 600; color: var(--primary-color);
-        }
-        .loading-overlay.active { display: flex; }
-
-        @media (max-width: 900px) {
-            .container { grid-template-columns: 1fr; }
-        }
+        *{box-sizing:border-box;margin:0;padding:0}
+        body{font-family:'Segoe UI','PingFang SC','Microsoft YaHei',sans-serif;background:var(--bg);color:var(--text);line-height:1.6}
+        .app-header{height:var(--header-h);background:linear-gradient(135deg,#1e293b 0%,#334155 100%);color:white;display:flex;align-items:center;justify-content:space-between;padding:0 24px;position:sticky;top:0;z-index:100;box-shadow:0 2px 8px rgba(0,0,0,.15)}
+        .app-header h1{font-size:1.25rem;font-weight:600}.app-header .right{display:flex;align-items:center;gap:12px}
+        .app-header .user-info{font-size:.82rem;opacity:.85}
+        .app-header .badge{margin-left:8px;background:rgba(255,255,255,.2);padding:2px 10px;border-radius:20px;font-size:.72rem}
+        .btn{display:inline-flex;align-items:center;gap:6px;border:none;border-radius:6px;font-weight:600;cursor:pointer;transition:.2s;padding:8px 16px;font-size:.85rem}
+        .btn-sm{padding:5px 12px;font-size:.75rem}.btn-primary{background:var(--primary);color:white}
+        .btn-primary:hover:not(:disabled){background:var(--primary-hover);transform:translateY(-1px)}
+        .btn-primary:disabled{background:#94a3b8;cursor:not-allowed}
+        .btn-outline{background:white;border:1px solid var(--border);color:var(--text)}
+        .btn-outline:hover{background:#f8fafc}.btn-danger{background:var(--danger);color:white}.btn-success{background:var(--success);color:white}
+        .app-body{display:flex;min-height:calc(100vh - var(--header-h))}
+        .sidebar{width:var(--nav-width);background:var(--card-bg);border-right:1px solid var(--border);padding:16px 0;position:sticky;top:var(--header-h);height:calc(100vh - var(--header-h));overflow-y:auto;flex-shrink:0}
+        .sidebar .nav-item{display:flex;align-items:center;gap:10px;padding:12px 24px;cursor:pointer;font-size:.9rem;font-weight:500;color:var(--text-sub);border-left:3px solid transparent;transition:.15s}
+        .sidebar .nav-item:hover{background:#f8fafc;color:var(--text)}
+        .sidebar .nav-item.active{color:var(--primary);background:#eff6ff;border-left-color:var(--primary)}
+        .sidebar .nav-icon{font-size:1.15rem;width:22px;text-align:center}
+        .nav-divider{border-top:1px solid var(--border);margin:8px 16px}
+        .main{flex:1;padding:24px;overflow-y:auto}.tab-content{display:none}.tab-content.active{display:block}
+        .card{background:var(--card-bg);border-radius:10px;padding:20px;box-shadow:0 1px 3px rgba(0,0,0,.06);border:1px solid var(--border);margin-bottom:20px}
+        .card h3{font-size:1rem;margin-bottom:14px;padding-bottom:10px;border-bottom:1px solid var(--border)}
+        .form-group{margin-bottom:14px}.form-group label{display:block;font-weight:600;margin-bottom:4px;font-size:.85rem}
+        input[type=file]{width:100%;padding:8px;border:1px dashed var(--border);border-radius:6px;cursor:pointer;font-size:.82rem}
+        select,input[type=text],input[type=password]{width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:6px;font-size:.85rem;background:white}
+        .slider-row{display:flex;align-items:center;gap:10px}input[type=range]{flex:1;accent-color:var(--primary)}.slider-val{min-width:38px;text-align:right;font-weight:700;color:var(--primary);font-size:.85rem}
+        .img-panel{display:grid;grid-template-columns:1fr 1fr;gap:16px}.img-box{text-align:center}.img-box .label{font-size:.82rem;color:var(--text-sub);margin-bottom:8px}
+        .img-frame{background:#fafafa;border:1px solid var(--border);border-radius:8px;min-height:200px;display:flex;align-items:center;justify-content:center;overflow:hidden}
+        .img-frame img{max-width:100%;max-height:400px;object-fit:contain}.img-frame .empty{color:var(--text-sub);font-size:.85rem}
+        .stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px}
+        .stat-cell{background:#f0f9ff;padding:12px;border-radius:8px;text-align:center}.stat-cell .num{font-size:1.4rem;font-weight:700;color:var(--primary)}.stat-cell .lbl{font-size:.75rem;color:var(--text-sub);margin-top:2px}
+        .tbl-wrap{overflow-x:auto}table{width:100%;border-collapse:collapse;font-size:.85rem}th,td{padding:8px 12px;text-align:left;border-bottom:1px solid var(--border)}th{background:#f8fafc;font-weight:600;white-space:nowrap}tr:hover{background:#f8fafc}
+        .toggle-group{display:flex;gap:0;margin-bottom:12px}.toggle-group button{flex:1;padding:8px;border:1px solid var(--border);background:white;cursor:pointer;font-size:.82rem;font-weight:500}.toggle-group button:first-child{border-radius:6px 0 0 6px}.toggle-group button:last-child{border-radius:0 6px 6px 0}.toggle-group button.active{background:var(--primary);color:white;border-color:var(--primary)}
+        .defect-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:16px}
+        .defect-card{border:1px solid var(--border);border-radius:10px;overflow:hidden;transition:box-shadow .2s}.defect-card:hover{box-shadow:0 4px 12px rgba(0,0,0,.08)}
+        .defect-card .card-header{padding:12px 16px;font-weight:700;font-size:.95rem;display:flex;justify-content:space-between}
+        .defect-card .card-body{padding:14px 16px;font-size:.84rem;line-height:1.7}.defect-card .row{margin-bottom:10px}.defect-card .row-title{font-weight:600;color:var(--text-sub);font-size:.78rem}
+        .severity-high{color:#dc2626}.severity-mid{color:#ea580c}.severity-low{color:#16a34a}
+        .pagination{display:flex;gap:8px;justify-content:center;align-items:center;margin-top:16px}.pagination button{padding:6px 14px;border:1px solid var(--border);background:white;border-radius:4px;cursor:pointer;font-size:.82rem}.pagination button:disabled{opacity:.4;cursor:not-allowed}.pagination span{font-size:.82rem;color:var(--text-sub)}
+        .modal-overlay{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.45);z-index:200;display:none;align-items:center;justify-content:center}.modal-overlay.active{display:flex}
+        .modal{background:white;border-radius:12px;padding:24px;max-width:500px;width:90%;max-height:80vh;overflow-y:auto;box-shadow:0 8px 32px rgba(0,0,0,.15)}
+        .modal h3{margin-bottom:16px}.modal-close{float:right;background:none;border:none;font-size:1.3rem;cursor:pointer}
+        .chart-box{position:relative;height:300px}.chart-box canvas{width:100%!important;height:100%!important}
+        .mermaid-box{background:#fafafa;border-radius:8px;padding:20px;overflow-x:auto;text-align:center}
+        .spinner{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(255,255,255,.75);display:none;align-items:center;justify-content:center;z-index:300;flex-direction:column;gap:12px}
+        .spinner.active{display:flex}.spinner .msg{background:white;padding:20px 36px;border-radius:12px;box-shadow:0 4px 16px rgba(0,0,0,.1);font-weight:600;font-size:1rem;color:var(--primary)}
+        .spinner .progress-bar{width:300px;height:10px;background:#e5e7eb;border-radius:5px;overflow:hidden}.spinner .progress-fill{height:100%;background:var(--primary);border-radius:5px;transition:width .3s;width:0%}
+        .spinner .progress-text{font-size:.8rem;color:var(--text-sub)}
+        /* Alert flash */
+        @keyframes alertPulse{0%,100%{background:var(--card-bg)}50%{background:#fef2f2}}
+        .alert-flash{animation:alertPulse .8s ease-in-out 3;border:2px solid var(--danger)!important;border-radius:10px}
+        .alert-badge{display:inline-block;background:var(--danger);color:white;padding:2px 10px;border-radius:12px;font-size:.75rem;font-weight:700;animation:alertPulse .6s infinite}
+        @media(max-width:900px){.app-body{flex-direction:column}.sidebar{width:100%;height:auto;position:static;display:flex;flex-wrap:wrap;padding:8px}.sidebar .nav-item{padding:8px 12px;font-size:.8rem;border-left:none;border-bottom:2px solid transparent}.sidebar .nav-item.active{border-left:none;border-bottom-color:var(--primary)}.nav-divider{display:none}.img-panel{grid-template-columns:1fr}}
     </style>
 </head>
 <body>
-    <div class="header">
-        <h1>🔍 工业缺陷检测系统</h1>
-        <p>支持自定义模型上传 · 实时参数调节 · 可视化结果统计</p>
-    </div>
 
-    <div class="container">
-        <!-- 左侧控制面板 -->
+<!-- ═══ HEADER ═══ -->
+<header class="app-header">
+    <h1>🔍 工业缺陷检测系统<span class="badge">YOLOv5/v8 + RBAC</span></h1>
+    <div class="right">
+        <span class="user-info" id="headerUser">未登录</span>
+        <button class="btn btn-sm btn-outline" style="color:white;border-color:rgba(255,255,255,.3)" onclick="showLogin()" id="btnLogin">🔑 登录</button>
+        <button class="btn btn-sm btn-outline" style="color:white;border-color:rgba(255,255,255,.3);display:none" onclick="doLogout()" id="btnLogout">🚪 登出</button>
+    </div>
+</header>
+
+<!-- ═══ BODY ═══ -->
+<div class="app-body">
+<nav class="sidebar">
+    <div class="nav-item active" data-tab="detect"><span class="nav-icon">🔍</span>检测中心</div>
+    <div class="nav-item" data-tab="history"><span class="nav-icon">📋</span>历史记录</div>
+    <div class="nav-item" data-tab="defects"><span class="nav-icon">📖</span>缺陷图鉴</div>
+    <div class="nav-item" data-tab="dataset"><span class="nav-icon">📊</span>数据集</div>
+    <div class="nav-divider"></div>
+    <div class="nav-item" data-tab="arch"><span class="nav-icon">🏗️</span>系统架构</div>
+    <div class="nav-item admin-only" data-tab="users" style="display:none"><span class="nav-icon">👥</span>用户管理</div>
+</nav>
+
+<main class="main">
+
+<!-- ═══ TAB: 检测中心 ═══ -->
+<section class="tab-content active" id="tab-detect">
+    <div style="display:grid;grid-template-columns:340px 1fr;gap:20px;">
         <div class="card">
             <h3>⚙️ 检测配置</h3>
-
-            <div class="form-group">
-                <label>模型文件 (.pt)</label>
-                <input type="file" id="modelFile" accept=".pt">
+            <div class="toggle-group" id="modelModeToggle">
+                <button class="active" data-mode="preset">📦 预设模型</button>
+                <button data-mode="custom">📤 自定义上传</button>
             </div>
-
-            <div class="form-group">
-                <label>待检测图片</label>
-                <input type="file" id="imageFile" accept="image/*">
+            <div class="form-group" id="presetModelGroup"><label>选择模型</label><select id="modelSelect"><option>加载中…</option></select></div>
+            <div class="form-group" id="customModelGroup" style="display:none"><label>上传模型 (.pt)</label><input type="file" id="customModelFile" accept=".pt"></div>
+            <div class="toggle-group" id="detectModeToggle">
+                <button class="active" data-mode="single">🖼️ 单图检测</button>
+                <button data-mode="batch">📚 批量检测</button>
             </div>
-
-            <div class="form-group">
-                <label>置信度阈值 (Confidence)</label>
-                <div class="slider-container">
-                    <input type="range" id="confSlider" min="0.05" max="0.95" step="0.05" value="0.25">
-                    <span class="slider-value" id="confValue">0.25</span>
-                </div>
-            </div>
-
-            <div class="form-group">
-                <label>IOU 阈值 (NMS)</label>
-                <div class="slider-container">
-                    <input type="range" id="iouSlider" min="0.1" max="0.9" step="0.05" value="0.45">
-                    <span class="slider-value" id="iouValue">0.45</span>
-                </div>
-            </div>
-
-            <button id="detectBtn" disabled>🚀 开始检测</button>
+            <div class="form-group" id="singleImageGroup"><label>上传图片</label><input type="file" id="singleImageFile" accept="image/*"></div>
+            <div class="form-group" id="batchImageGroup" style="display:none"><label>上传多张图片</label><input type="file" id="batchImageFile" accept="image/*" multiple></div>
+            <div class="form-group"><label>置信度阈值</label><div class="slider-row"><input type="range" id="confSlider" min="0.01" max="0.95" step="0.01" value="0.15"><span class="slider-val" id="confVal">0.15</span></div></div>
+            <div class="form-group"><label>IOU 阈值</label><div class="slider-row"><input type="range" id="iouSlider" min="0.1" max="0.9" step="0.05" value="0.45"><span class="slider-val" id="iouVal">0.45</span></div></div>
+            <div class="form-group"><label>🚨 告警阈值 (检出数≥此值闪烁)</label><div class="slider-row"><input type="range" id="alertSlider" min="1" max="20" step="1" value="5"><span class="slider-val" id="alertVal">5</span></div></div>
+            <button class="btn btn-primary" id="detectBtn" disabled>🚀 开始检测</button>
         </div>
-
-        <!-- 右侧结果展示 -->
-        <div style="display:flex; flex-direction:column; gap:24px;">
-            <div class="card">
+        <div>
+            <div class="card" id="resultCard">
                 <h3>🖼️ 图像对比</h3>
-                <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px;">
-                    <div>
-                        <p style="font-size:0.85rem;color:var(--text-sub);margin-bottom:8px;">原始图片</p>
-                        <div class="image-wrapper">
-                            <img id="previewImg" style="display:none;">
-                            <span class="placeholder" id="noPreview">请先上传图片</span>
-                        </div>
-                    </div>
-                    <div>
-                        <p style="font-size:0.85rem;color:var(--text-sub);margin-bottom:8px;">检测结果</p>
-                        <div class="image-wrapper">
-                            <img id="resultImg" style="display:none;">
-                            <span class="placeholder" id="noResult">等待检测...</span>
-                        </div>
-                    </div>
-                </div>
+                <div class="img-panel"><div class="img-box"><div class="label">📷 原始图片</div><div class="img-frame"><img id="previewImg" style="display:none"><span class="empty" id="noPreview">请先上传图片</span></div></div><div class="img-box"><div class="label">✅ 检测结果</div><div class="img-frame"><img id="resultImg" style="display:none"><span class="empty" id="noResult">等待检测…</span></div></div></div>
             </div>
-
-            <div class="card">
-                <h3>📊 检测统计</h3>
-                <div class="stats-panel" id="statsPanel">
-                    <div class="stat-item"><div class="num" id="totalCount">-</div><div class="label">检出总数</div></div>
-                    <div class="stat-item"><div class="num" id="defectCount">-</div><div class="label">缺陷数量</div></div>
-                    <div class="stat-item"><div class="num" id="avgConf">-</div><div class="label">平均置信度</div></div>
-                    <div class="stat-item"><div class="num" id="inferTime">-</div><div class="label">推理耗时(ms)</div></div>
-                </div>
-            </div>
+            <div id="batchResults" style="display:none"></div>
+            <div class="card"><h3>📊 检测统计</h3><div class="stats-grid"><div class="stat-cell"><div class="num" id="totalCount">-</div><div class="lbl">检出总数</div></div><div class="stat-cell"><div class="num" id="defectCount">-</div><div class="lbl">缺陷数量</div></div><div class="stat-cell"><div class="num" id="avgConf">-</div><div class="lbl">平均置信度</div></div><div class="stat-cell"><div class="num" id="inferTime">-</div><div class="lbl">推理耗时(ms)</div></div><div class="stat-cell"><div class="num" id="modelTypeBadge">-</div><div class="lbl">模型版本</div></div></div></div>
+            <div class="card" id="detailCard" style="display:none"><h3>📝 检测详情</h3><div class="tbl-wrap"><table id="detailTable"><thead><tr><th>#</th><th>类别</th><th>置信度</th><th>x1</th><th>y1</th><th>x2</th><th>y2</th></tr></thead><tbody></tbody></table></div></div>
+            <div class="card" id="chartCard" style="display:none"><h3>📈 图表</h3><div style="display:grid;grid-template-columns:1fr 1fr;gap:20px"><div class="chart-box"><canvas id="classBarChart"></canvas></div><div class="chart-box"><canvas id="confPieChart"></canvas></div></div></div>
+            <!-- 模型对比 -->
+            <div class="card"><h3>🔄 模型性能对比 <button class="btn btn-sm btn-outline" onclick="loadModelCompare()">🔄 测试对比</button></h3><div class="tbl-wrap"><table id="compareTable2"><thead><tr><th>模型</th><th>版本</th><th>大小(MB)</th><th>检出数</th><th>耗时(ms)</th><th>备注</th></tr></thead><tbody id="compareBody"><tr><td colspan="6" style="text-align:center;color:var(--text-sub)">点击"测试对比"按钮</td></tr></tbody></table></div></div>
         </div>
     </div>
+</section>
 
-    <div class="loading-overlay" id="loadingOverlay">⏳ 模型推理中，请稍候...</div>
+<!-- ═══ TAB: 历史记录 ═══ -->
+<section class="tab-content" id="tab-history">
+    <div class="card"><h3>📈 统计概览</h3><div class="stats-grid" id="historySummary"><div class="stat-cell"><div class="num" id="histTotal">-</div><div class="lbl">总检测次数</div></div><div class="stat-cell"><div class="num" id="histAvgTime">-</div><div class="lbl">平均耗时(ms)</div></div></div><div class="chart-box" style="height:200px;margin-top:12px"><canvas id="histClassChart"></canvas></div></div>
+    <div class="card"><h3>📋 检测记录</h3><div class="tbl-wrap"><table><thead><tr><th>ID</th><th>模型</th><th>版本</th><th>图片</th><th>用户</th><th>检出数</th><th>平均置信度</th><th>耗时</th><th>时间</th><th>操作</th></tr></thead><tbody id="historyTbody"></tbody></table></div><div class="pagination" id="historyPager"></div></div>
+</section>
 
-    <script>
-        const $ = id => document.getElementById(id);
-        let modelFile = null, imageFile = null;
+<!-- ═══ TAB: 缺陷图鉴 ═══ -->
+<section class="tab-content" id="tab-defects">
+    <div class="card"><h3>📖 钢材表面缺陷知识图谱</h3><p style="color:var(--text-sub);font-size:.85rem">NEU-DET 数据集 6 类热轧带钢表面缺陷，含训练集样本图（绿色框=人工标注）</p></div>
+    <div class="defect-grid" id="defectGrid"></div>
+</section>
 
-        // 滑块联动
-        $('confSlider').oninput = e => $('confValue').textContent = e.target.value;
-        $('iouSlider').oninput = e => $('iouValue').textContent = e.target.value;
+<!-- ═══ TAB: 数据集 ═══ -->
+<section class="tab-content" id="tab-dataset">
+    <div class="card"><h3>📊 NEU-DET 数据集概览</h3><div class="stats-grid" id="datasetOverview"></div></div>
+    <div class="card"><h3>📈 类别分布</h3><div class="chart-box" style="height:250px"><canvas id="dsClassChart"></canvas></div></div>
+    <div class="card"><h3>📉 训练曲线 (train-9)</h3><div style="text-align:center"><img id="trainCurveImg" style="max-width:100%;max-height:500px;border-radius:8px" onerror="this.style.display='none'"></div></div>
+    <div class="card"><h3>🔄 数据集对比</h3><div class="tbl-wrap"><table id="compareTable"></table></div></div>
+    <div class="card"><h3>🎯 多维度雷达图</h3><div class="chart-box" style="height:350px"><canvas id="radarChart"></canvas></div></div>
+</section>
 
-        // 文件选择监听
-        $('modelFile').onchange = e => { modelFile = e.target.files[0]; updateBtn(); };
-        $('imageFile').onchange = e => {
-            imageFile = e.target.files[0];
-            if (imageFile) {
-                const reader = new FileReader();
-                reader.onload = ev => {
-                    $('previewImg').src = ev.target.result;
-                    $('previewImg').style.display = 'block';
-                    $('noPreview').style.display = 'none';
-                };
-                reader.readAsDataURL(imageFile);
-            }
-            updateBtn();
-        };
+<!-- ═══ TAB: 系统架构 ═══ -->
+<section class="tab-content" id="tab-arch">
+    <div class="card"><h3>🏗️ 系统整体架构</h3><div class="mermaid-box" id="mermaid1"></div></div>
+    <div class="card"><h3>🔄 检测函数调用流程</h3><div class="mermaid-box" id="mermaid2"></div></div>
+    <div class="card"><h3>📡 数据流图</h3><div class="mermaid-box" id="mermaid3"></div></div>
+    <div class="card"><h3>🔌 API 接口结构</h3><div class="mermaid-box" id="mermaid4"></div></div>
+</section>
 
-        function updateBtn() {
-            $('detectBtn').disabled = !(modelFile && imageFile);
-        }
+<!-- ═══ TAB: 用户管理 (admin) ═══ -->
+<section class="tab-content" id="tab-users">
+    <div class="card"><h3>👥 用户管理 <button class="btn btn-sm btn-primary" onclick="showCreateUser()">+ 新建用户</button></h3><div class="tbl-wrap"><table><thead><tr><th>ID</th><th>用户名</th><th>角色</th><th>创建时间</th><th>操作</th></tr></thead><tbody id="usersTbody"></tbody></table></div></div>
+</section>
 
-        // 核心检测请求
-        $('detectBtn').onclick = async () => {
-            if (!modelFile || !imageFile) return;
+</main>
+</div>
 
-            const formData = new FormData();
-            formData.append('model', modelFile);
-            formData.append('image', imageFile);
-            formData.append('conf', $('confSlider').value);
-            formData.append('iou', $('iouSlider').value);
+<!-- ═══ 登录弹窗 ═══ -->
+<div class="modal-overlay" id="loginOverlay">
+    <div class="modal"><button class="modal-close" onclick="closeLogin()">✕</button><h3>🔐 用户登录</h3>
+        <div class="form-group"><label>用户名</label><input type="text" id="loginUser" placeholder="admin / operator / viewer"></div>
+        <div class="form-group"><label>密码</label><input type="password" id="loginPass" placeholder="admin123 / operator123 / viewer123"></div>
+        <p id="loginError" style="color:var(--danger);font-size:.82rem;margin-bottom:10px;display:none"></p>
+        <button class="btn btn-primary" style="width:100%" onclick="doLogin()">登录</button>
+        <p style="font-size:.75rem;color:var(--text-sub);margin-top:10px">默认账号: admin/admin123 | operator/operator123 | viewer/viewer123</p>
+    </div>
+</div>
 
-            $('loadingOverlay').classList.add('active');
-            $('detectBtn').disabled = true;
+<!-- ═══ 新建用户弹窗 ═══ -->
+<div class="modal-overlay" id="createUserOverlay">
+    <div class="modal"><button class="modal-close" onclick="$('createUserOverlay').classList.remove('active')">✕</button><h3>➕ 新建用户</h3>
+        <div class="form-group"><label>用户名</label><input type="text" id="newUsername"></div>
+        <div class="form-group"><label>密码</label><input type="password" id="newPassword"></div>
+        <div class="form-group"><label>角色</label><select id="newRole"><option value="operator">operator (检测员)</option><option value="viewer">viewer (观察者)</option><option value="admin">admin (管理员)</option></select></div>
+        <p id="createUserError" style="color:var(--danger);font-size:.82rem;margin-bottom:10px;display:none"></p>
+        <button class="btn btn-primary" style="width:100%" onclick="doCreateUser()">创建</button>
+    </div>
+</div>
 
-            try {
-                const response = await fetch('/upload', { method: 'POST', body: formData });
+<!-- ═══ SPINNER ═══ -->
+<div class="spinner" id="spinner"><div class="msg">⏳ 模型推理中，请稍候…</div><div class="progress-bar" id="progressBar" style="display:none"><div class="progress-fill" id="progressFill"></div></div><div class="progress-text" id="progressText"></div></div>
 
-                if (!response.ok) {
-                    const err = await response.json();
-                    throw new Error(err.error || '服务器返回错误');
-                }
+<script>
+const $=id=>document.getElementById(id),$$=(sel,ctx)=>(ctx||document).querySelectorAll(sel);
+let currentUser=null,currentModelMode='preset',currentDetectMode='single',
+    currentModelFile=null,currentImageFile=null,currentBatchFiles=null,
+    lastResult=null,classBarChart=null,confPieChart=null,histClassChart=null,
+    dsClassChart=null,radarChart=null,historyPage=1;
 
-                const data = await response.json();
+function showSpinner(msg){$('spinner').classList.add('active');if(msg)$('spinner').querySelector('.msg').textContent=msg;$('progressBar').style.display='none'}
+function hideSpinner(){$('spinner').classList.remove('active')}
+function showProgress(total){$('progressBar').style.display='';$('progressFill').style.width='0%';$('progressText').textContent=`0 / ${total}`}
+function updateProgress(n,total){const pct=Math.round(n/total*100);$('progressFill').style.width=pct+'%';$('progressText').textContent=`${n} / ${total}`}
 
-                // 显示结果图
-                $('resultImg').src = 'data:image/jpeg;base64,' + data.image_base64;
-                $('resultImg').style.display = 'block';
-                $('noResult').style.display = 'none';
+// ═══ 权限检查 ═══
+function checkAuth(requiredRoles){
+    if(!currentUser){showLogin();return false}
+    if(requiredRoles && requiredRoles.indexOf(currentUser.role)===-1){alert('权限不足，需要: '+requiredRoles.join('或'));return false}
+    return true
+}
+function isAdmin(){return currentUser&&currentUser.role==='admin'}
 
-                // 更新统计面板
-                $('totalCount').textContent = data.stats?.total ?? '-';
-                $('defectCount').textContent = data.stats?.defects ?? '-';
-                $('avgConf').textContent = data.stats?.avg_conf ? (data.stats.avg_conf * 100).toFixed(1) + '%' : '-';
-                $('inferTime').textContent = data.stats?.infer_ms ?? '-';
+// ═══ 导航 ═══
+$$('.nav-item').forEach(el=>{el.addEventListener('click',()=>{
+    $$('.nav-item').forEach(n=>n.classList.remove('active'));el.classList.add('active');
+    $$('.tab-content').forEach(t=>t.classList.remove('active'));
+    const target=$('tab-'+el.dataset.tab);
+    if(target)target.classList.add('active');
+    if(el.dataset.tab==='history')loadHistory();
+    else if(el.dataset.tab==='defects')loadDefects();
+    else if(el.dataset.tab==='dataset')loadDataset();
+    else if(el.dataset.tab==='arch')loadArchitecture();
+    else if(el.dataset.tab==='users')loadUsers();
+})});
 
-            } catch (error) {
-                alert('❌ 检测失败: ' + error.message);
-            } finally {
-                $('loadingOverlay').classList.remove('active');
-                updateBtn();
-            }
-        };
-    </script>
+// ═══ 登录 ═══
+function showLogin(){$('loginError').style.display='none';$('loginOverlay').classList.add('active');$('loginUser').focus()}
+function closeLogin(){$('loginOverlay').classList.remove('active')}
+async function doLogin(){
+    const username=$('loginUser').value.trim(),password=$('loginPass').value;
+    if(!username||!password){$('loginError').textContent='请输入用户名和密码';$('loginError').style.display='';return}
+    try{
+        const res=await fetch('/api/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username,password})});
+        if(!res.ok){const e=await res.json();throw new Error(e.error)}
+        currentUser=await res.json();
+        closeLogin();updateUIAuth();loadModels();
+    }catch(e){$('loginError').textContent=e.message;$('loginError').style.display=''}
+}
+async function doLogout(){
+    await fetch('/api/logout',{method:'POST'});currentUser=null;updateUIAuth();loadModels()
+}
+async function checkSession(){
+    try{const res=await fetch('/api/me');const d=await res.json();if(d.logged_in){currentUser=d;updateUIAuth()}}
+    catch(e){}
+}
+function updateUIAuth(){
+    if(currentUser){
+        $('headerUser').textContent=`👤 ${currentUser.username} (${currentUser.role})`;
+        $('btnLogin').style.display='none';$('btnLogout').style.display='';
+        $$('.admin-only').forEach(el=>el.style.display=isAdmin()?'':'none');
+    }else{
+        $('headerUser').textContent='未登录';$('btnLogin').style.display='';$('btnLogout').style.display='none';
+        $$('.admin-only').forEach(el=>el.style.display='none');
+    }
+    updateDetectBtn();
+}
+
+// ═══ 模型/检测模式切换 ═══
+$$('#modelModeToggle button').forEach(b=>b.addEventListener('click',()=>{
+    $$('#modelModeToggle button').forEach(x=>x.classList.remove('active'));b.classList.add('active');
+    currentModelMode=b.dataset.mode;$('presetModelGroup').style.display=currentModelMode==='preset'?'':'none';
+    $('customModelGroup').style.display=currentModelMode==='custom'?'':'none';updateDetectBtn()
+}));
+$$('#detectModeToggle button').forEach(b=>b.addEventListener('click',()=>{
+    $$('#detectModeToggle button').forEach(x=>x.classList.remove('active'));b.classList.add('active');
+    currentDetectMode=b.dataset.mode;$('singleImageGroup').style.display=currentDetectMode==='single'?'':'none';
+    $('batchImageGroup').style.display=currentDetectMode==='batch'?'':'none';updateDetectBtn()
+}));
+$('customModelFile').onchange=e=>{currentModelFile=e.target.files[0];updateDetectBtn()}
+$('singleImageFile').onchange=e=>{currentImageFile=e.target.files[0];
+    if(currentImageFile){const r=new FileReader();r.onload=ev=>{$('previewImg').src=ev.target.result;$('previewImg').style.display='block';$('noPreview').style.display='none'};r.readAsDataURL(currentImageFile)}updateDetectBtn()}
+$('batchImageFile').onchange=e=>{currentBatchFiles=e.target.files;updateDetectBtn()}
+$('confSlider').oninput=e=>$('confVal').textContent=e.target.value
+$('iouSlider').oninput=e=>$('iouVal').textContent=e.target.value
+$('alertSlider').oninput=e=>$('alertVal').textContent=e.target.value
+
+function updateDetectBtn(){
+    let ok=false;
+    if(currentModelMode==='preset'){const v=$('modelSelect').value;ok=v&&v!==''}
+    else ok=!!currentModelFile
+    if(currentDetectMode==='single')ok=ok&&!!currentImageFile
+    else ok=ok&&currentBatchFiles&&currentBatchFiles.length>0
+    ok=ok&&!!currentUser  // 必须登录
+    $('detectBtn').disabled=!ok
+}
+
+async function loadModels(){
+    try{
+        const res=await fetch('/api/models');const data=await res.json();
+        const sel=$('modelSelect');sel.innerHTML='<option value="">-- 请选择模型 --</option>';
+        (data.models||[]).forEach(m=>{const o=document.createElement('option');o.value=m.path;o.textContent=`${m.name} (${m.type}, ${m.size_mb}MB)`;sel.appendChild(o)});
+        if(!data.models||data.models.length===0)sel.innerHTML+='<option value="" disabled>⚠️ models/目录为空，请使用自定义上传</option>'
+    }catch(e){$('modelSelect').innerHTML='<option value="">⚠️ 加载失败</option>'}
+    updateDetectBtn()
+}
+$('modelSelect').onchange=()=>updateDetectBtn()
+
+// ═══ 检测 ═══
+$('detectBtn').onclick=async()=>{
+    const formData=new FormData();
+    if(currentModelMode==='preset'){const p=$('modelSelect').value;if(!p)return alert('请选择模型');formData.append('model_path',p)}
+    else{if(!currentModelFile)return alert('请上传模型');formData.append('model',currentModelFile)}
+    formData.append('conf',$('confSlider').value);formData.append('iou',$('iouSlider').value);
+
+    if(currentDetectMode==='single'){
+        formData.append('image',currentImageFile);showSpinner('⏳ 单图推理中…');
+        try{
+            const res=await fetch('/upload',{method:'POST',body:formData});
+            if(!res.ok){if(res.status===401){showLogin();hideSpinner();return}const e=await res.json();throw new Error(e.error)}
+            const data=await res.json();renderSingleResult(data)
+        }catch(e){alert('❌ '+e.message)}finally{hideSpinner();updateDetectBtn()}
+    }else{
+        for(let f of currentBatchFiles)formData.append('images',f);
+        showSpinner('⏳ 批量检测中…');showProgress(currentBatchFiles.length);
+        try{
+            const res=await fetch('/upload/batch',{method:'POST',body:formData});
+            if(!res.ok){if(res.status===401){showLogin();hideSpinner();return}const e=await res.json();throw new Error(e.error)}
+            const data=await res.json();renderBatchResult(data)
+        }catch(e){alert('❌ '+e.message)}finally{hideSpinner();updateDetectBtn()}
+    }
+}
+
+function renderSingleResult(data){
+    lastResult=data;$('resultImg').src='data:image/jpeg;base64,'+data.image_base64;
+    $('resultImg').style.display='block';$('noResult').style.display='none';
+    $('totalCount').textContent=data.stats?.total??0;$('defectCount').textContent=data.stats?.defects??0;
+    $('avgConf').textContent=data.stats?.avg_conf?formatConf(data.stats.avg_conf):'-';
+    $('inferTime').textContent=data.stats?.infer_ms??'-';
+    $('modelTypeBadge').textContent=data.model_type||'未知';
+    $('batchResults').style.display='none';
+    renderDetailTable(data.details||[]);renderResultCharts(data.details||[]);
+    checkAlert(data.stats?.total??0);
+}
+
+function renderBatchResult(data){
+    $('resultImg').style.display='none';$('noResult').textContent='批量检测完成';
+    let html='';let allDetails=data.all_details||[];
+    (data.batch||[]).forEach((item,idx)=>{
+        html+=`<div class="card"><h3>📷 ${idx+1}: ${item.image_name} <small style="color:var(--text-sub)">模型:${item.model_type||'?'}</small></h3>
+            <div class="img-panel"><div class="img-box"><div class="label">检测结果</div><div class="img-frame"><img src="data:image/jpeg;base64,${item.image_base64}"></div></div>
+            <div><div class="stats-grid"><div class="stat-cell"><div class="num">${item.stats.total}</div><div class="lbl">检出数</div></div><div class="stat-cell"><div class="num">${item.stats.avg_conf?formatConf(item.stats.avg_conf):'-'}</div><div class="lbl">平均置信度</div></div><div class="stat-cell"><div class="num">${item.stats.infer_ms}</div><div class="lbl">耗时(ms)</div></div></div></div></div></div>`
+    });
+    $('batchResults').innerHTML=html;$('batchResults').style.display='';
+    const totalAll=allDetails.length,avgAll=totalAll>0?allDetails.reduce((s,d)=>s+d.confidence,0)/totalAll:0;
+    $('totalCount').textContent=totalAll;$('defectCount').textContent=totalAll;
+    $('avgConf').textContent=totalAll>0?formatConf(avgAll):'-';$('inferTime').textContent='-';
+    $('modelTypeBadge').textContent=data.batch?data.batch[0]?.model_type||'混合':'未知';
+    renderDetailTable(allDetails);renderResultCharts(allDetails);checkAlert(totalAll);
+}
+
+function renderDetailTable(details){
+    $('detailCard').style.display=details.length>0?'':'none';
+    const tbody=document.querySelector('#detailTable tbody');
+    tbody.innerHTML=details.map((d,i)=>`<tr><td>${i+1}</td><td><span style="display:inline-block;background:${getDefectColor(d.class_name)}22;color:${getDefectColor(d.class_name)};padding:2px 8px;border-radius:12px;font-size:.75rem;font-weight:600">${d.class_name}</span></td><td><strong>${formatConf(d.confidence)}</strong></td><td>${d.bbox[0]}</td><td>${d.bbox[1]}</td><td>${d.bbox[2]}</td><td>${d.bbox[3]}</td></tr>`).join('')
+}
+
+const DEFECT_COLORS={crazing:'#ef4444',inclusion:'#f97316',patches:'#eab308',pitted_surface:'#22c55e',rolled_in_scale:'#3b82f6',scratches:'#8b5cf6'};
+function getDefectColor(n){for(let k in DEFECT_COLORS)if(n&&n.toLowerCase().includes(k.toLowerCase()))return DEFECT_COLORS[k];return'#94a3b8'}
+function formatConf(c){return(c*100).toFixed(1)+'%'}
+
+function renderResultCharts(details){
+    $('chartCard').style.display=details.length>0?'':'none';if(!details.length)return;
+    const cc={};details.forEach(d=>{cc[d.class_name]=(cc[d.class_name]||0)+1});
+    const labels=Object.keys(cc),counts=Object.values(cc),colors=labels.map(n=>getDefectColor(n));
+    const ctx1=$('classBarChart').getContext('2d');if(classBarChart)classBarChart.destroy();
+    classBarChart=new Chart(ctx1,{type:'bar',data:{labels,datasets:[{label:'检出数量',data:counts,backgroundColor:colors,borderRadius:4}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,ticks:{stepSize:1}}}}});
+    const cr={'高置信度(>0.8)':0,'中等(0.5-0.8)':0,'低置信度(<0.5)':0};details.forEach(d=>{if(d.confidence>0.8)cr['高置信度(>0.8)']++;else if(d.confidence>=0.5)cr['中等(0.5-0.8)']++;else cr['低置信度(<0.5)']++});
+    const ctx2=$('confPieChart').getContext('2d');if(confPieChart)confPieChart.destroy();
+    confPieChart=new Chart(ctx2,{type:'doughnut',data:{labels:Object.keys(cr),datasets:[{data:Object.values(cr),backgroundColor:['#22c55e','#eab308','#ef4444']}]},options:{responsive:true,maintainAspectRatio:false,plugins:{title:{display:true,text:'置信度分布'}}}})
+}
+
+// ═══ 告警 ═══
+function checkAlert(total){
+    const threshold=parseInt($('alertSlider').value)||5;
+    const card=$('resultCard');
+    if(total>=threshold){card.classList.add('alert-flash');setTimeout(()=>card.classList.remove('alert-flash'),2500)}
+    else card.classList.remove('alert-flash')
+}
+
+// ═══ 模型对比 ═══
+async function loadModelCompare(){
+    $('compareBody').innerHTML='<tr><td colspan="6" style="text-align:center">⏳ 对比中…</td></tr>';
+    try{
+        const res=await fetch('/api/model/compare');if(!res.ok){const e=await res.json();throw new Error(e.error)}
+        const data=await res.json();
+        $('compareBody').innerHTML=data.results.map(r=>`<tr>
+            <td><strong>${r.model_name}</strong></td><td>${r.model_type}</td><td>${r.size_mb}</td>
+            <td>${r.detections}</td><td>${r.infer_time_ms||'-'}</td>
+            <td style="font-size:.8rem">${r.error||(r.infer_time_ms?'✅ 成功':'❌ 失败')}</td>
+        </tr>`).join('')
+    }catch(e){$('compareBody').innerHTML=`<tr><td colspan="6" style="color:var(--danger)">${e.message}</td></tr>`}
+}
+
+// ═══ 历史记录 ═══
+async function loadHistory(page=1){historyPage=page;
+    try{
+        const[statsRes,listRes]=await Promise.all([fetch('/api/history/stats'),fetch(`/api/history?page=${page}&per_page=10`)]);
+        const stats=await statsRes.json();const data=await listRes.json();
+        $('histTotal').textContent=stats.total_detections||0;$('histAvgTime').textContent=stats.avg_infer_time_ms||'-';
+        const dist=stats.class_distribution||{};const ctxH=$('histClassChart').getContext('2d');if(histClassChart)histClassChart.destroy();
+        histClassChart=new Chart(ctxH,{type:'bar',data:{labels:Object.keys(dist),datasets:[{label:'历史检出频次',data:Object.values(dist),backgroundColor:Object.keys(dist).map(n=>getDefectColor(n)),borderRadius:4}]},options:{responsive:true,maintainAspectRatio:false,indexAxis:'y',plugins:{legend:{display:false}},scales:{x:{beginAtZero:true,ticks:{stepSize:1}}}}});
+        const tbody=$('historyTbody');
+        if(!data.records||!data.records.length)tbody.innerHTML='<tr><td colspan="10" style="text-align:center;color:var(--text-sub)">暂无记录</td></tr>';
+        else tbody.innerHTML=data.records.map(r=>`<tr>
+            <td>${r.id}</td><td>${r.model_name}</td><td>${r.model_type||'-'}</td><td>${r.image_name}</td><td>${r.username||'-'}</td>
+            <td><strong>${r.total_count}</strong></td><td>${r.avg_confidence?formatConf(r.avg_confidence):'-'}</td><td>${r.infer_time_ms}</td><td>${r.created_at||'-'}</td>
+            <td><button class="btn btn-sm btn-outline" onclick="viewDetail(${r.id})">详情</button><button class="btn btn-sm btn-outline" onclick="exportReport(${r.id},'json')">JSON</button><button class="btn btn-sm btn-outline" onclick="exportReport(${r.id},'csv')">CSV</button><button class="btn btn-sm btn-danger" onclick="deleteHistory(${r.id})">删除</button></td>
+        </tr>`).join('');
+        const tp=data.total_pages||1,pg=$('historyPager');
+        pg.innerHTML=`<button ${page<=1?'disabled':''} onclick="loadHistory(${page-1})">◀ 上一页</button><span>${page}/${tp} (共${data.total}条)</span><button ${page>=tp?'disabled':''} onclick="loadHistory(${page+1})">下一页 ▶</button>`
+    }catch(e){$('historyTbody').innerHTML=`<tr><td colspan="10" style="color:red">加载失败: ${e.message}</td></tr>`}
+}
+async function viewDetail(id){
+    try{const res=await fetch('/api/history/'+id);const r=await res.json();showModal(`<h3>📋 检测详情 #${r.id}</h3><div class="stats-grid" style="margin-bottom:12px"><div class="stat-cell"><div class="num">${r.total_count}</div><div class="lbl">检出数</div></div><div class="stat-cell"><div class="num">${r.avg_confidence?formatConf(r.avg_confidence):'-'}</div><div class="lbl">平均置信度</div></div><div class="stat-cell"><div class="num">${r.infer_time_ms}</div><div class="lbl">耗时(ms)</div></div></div><p style="font-size:.82rem;color:var(--text-sub)">模型: ${r.model_name} | 用户: ${r.username||'-'} | 时间: ${r.created_at}</p>`)}
+    catch(e){alert('加载失败')}
+}
+async function deleteHistory(id){if(!confirm('确认删除?'))return;await fetch('/api/history/'+id,{method:'DELETE'});loadHistory(historyPage)}
+function exportReport(id,fmt){window.open('/api/export/'+id+'?format='+fmt,'_blank')}
+function showModal(html){$('modalOverlay').classList.add('active');$('modalContent').innerHTML='<button class="modal-close" onclick="$(\'modalOverlay\').classList.remove(\'active\')">✕</button>'+html}
+
+// ═══ 缺陷图鉴 ═══
+async function loadDefects(){
+    if($('defectGrid').children.length>1)return;
+    try{
+        const res=await fetch('/api/defects');const data=await res.json();
+        const sev={'高':'severity-high','中高':'severity-mid','中':'severity-mid','中低':'severity-low'};
+        const hc={crazing:'#fef2f2',inclusion:'#fff7ed',patches:'#fefce8',pitted_surface:'#f0fdf4',rolled_in_scale:'#eff6ff',scratches:'#faf5ff'};
+        $('defectGrid').innerHTML=(data.defects||[]).map(d=>`<div class="defect-card">
+            <div class="card-header" style="background:${hc[d.en]||'#f8fafc'}"><span>${d.cn} <small style="font-weight:400;color:var(--text-sub)">${d.en}</small></span><span class="${sev[d.severity]||''}">⚠️ ${d.severity}</span></div>
+            <div class="sample-img" style="background:#fafafa;text-align:center;padding:8px;min-height:180px;display:flex;align-items:center;justify-content:center"><span style="color:var(--text-sub);font-size:.8rem">🖼️ 加载中…</span></div>
+            <div class="card-body"><div class="row"><div class="row-title">🔬 成因</div>${d.cause}</div><div class="row"><div class="row-title">👁️ 外观特征</div>${d.appearance}</div><div class="row"><div class="row-title">⚠️ 质量影响</div>${d.impact}</div></div>
+        </div>`).join('');
+        for(const d of(data.defects||[]))loadSampleImage(d.en)
+    }catch(e){console.error(e)}
+}
+async function loadSampleImage(cn){
+    try{const res=await fetch('/api/defect/image/'+cn);if(!res.ok)return;const data=await res.json();
+        for(const card of $$('.defect-card')){const h=card.querySelector('.card-header span small');if(h&&h.textContent===cn){card.querySelector('.sample-img').innerHTML=`<img src="data:image/jpeg;base64,${data.image_base64}" style="width:100%;max-width:300px;border-radius:6px" alt="${cn}">`;break}}
+    }catch(e){}
+}
+
+// ═══ 数据集 ═══
+async function loadDataset(){
+    if($('compareTable').rows.length>0)return;
+    try{
+        const[infoRes,cmpRes]=await Promise.all([fetch('/api/dataset/info'),fetch('/api/dataset/compare')]);
+        const info=await infoRes.json(),cmp=await cmpRes.json();
+        $('datasetOverview').innerHTML=`<div class="stat-cell"><div class="num">${info.classes}</div><div class="lbl">缺陷类别</div></div><div class="stat-cell"><div class="num">${info.total_samples}</div><div class="lbl">样本总数</div></div><div class="stat-cell"><div class="num">${info.image_size}</div><div class="lbl">图像尺寸</div></div><div class="stat-cell"><div class="num">${info.train_samples}/${info.valid_samples}</div><div class="lbl">训练/验证</div></div><div class="stat-cell"><div class="num">${info.split_ratio}</div><div class="lbl">划分比例</div></div><div class="stat-cell"><div class="num">${info.image_type}</div><div class="lbl">图像类型</div></div>`;
+        const dist=info.class_distribution||{};const ctxD=$('dsClassChart').getContext('2d');if(dsClassChart)dsClassChart.destroy();
+        dsClassChart=new Chart(ctxD,{type:'bar',data:{labels:Object.keys(dist),datasets:[{label:'样本数',data:Object.values(dist),backgroundColor:Object.keys(dist).map(n=>getDefectColor(n)),borderRadius:4}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,max:350}}}});
+        // 训练曲线
+        $('trainCurveImg').src='static/train_results.png';
+        // 对比表
+        const dsList=cmp.datasets||[];
+        $('compareTable').innerHTML=`<thead><tr><th>数据集</th><th>类别数</th><th>样本量</th><th>分辨率</th><th>应用领域</th><th>年份</th><th>格式</th><th>优势</th><th>劣势</th></tr></thead><tbody>${dsList.map(ds=>`<tr style="${ds.name==='NEU-DET'?'background:#eff6ff;font-weight:600':''}"><td>${ds.name==='NEU-DET'?'⭐ '+ds.name:ds.name}</td><td>${ds.classes}</td><td>${ds.samples.toLocaleString()}</td><td>${ds.resolution}</td><td>${ds.domain}</td><td>${ds.year}</td><td>${ds.format}</td><td style="font-size:.8rem">${ds.strength}</td><td style="font-size:.8rem;color:var(--text-sub)">${ds.weakness}</td></tr>`).join('')}</tbody>`;
+        const rctx=$('radarChart').getContext('2d');if(radarChart)radarChart.destroy();
+        radarChart=new Chart(rctx,{type:'radar',data:{labels:['类别丰富度','样本规模','分辨率','场景多样性','标注规范性','学术影响力'],datasets:[{label:'NEU-DET',data:[3,3,2,2,5,5],borderColor:'#2563eb',backgroundColor:'rgba(37,99,235,.1)',borderWidth:2},{label:'KSDD2',data:[1,4,3,3,3,3],borderColor:'#f97316',backgroundColor:'rgba(249,115,22,.05)',borderWidth:2},{label:'DAGM',data:[5,5,4,4,2,3],borderColor:'#22c55e',backgroundColor:'rgba(34,197,94,.05)',borderWidth:2},{label:'Magnetic Tile',data:[2,2,2,2,4,2],borderColor:'#8b5cf6',backgroundColor:'rgba(139,92,246,.05)',borderWidth:2}]},options:{responsive:true,maintainAspectRatio:false,scales:{r:{beginAtZero:true,max:5,ticks:{stepSize:1}}}}})
+    }catch(e){console.error(e)}
+}
+
+// ═══ 架构 ═══
+async function loadArchitecture(){
+    if($('mermaid1').innerHTML.trim()!=='')return;
+    try{
+        const res=await fetch('/api/flowchart');const data=await res.json();
+        ['system_architecture','detection_flow','data_flow','api_structure'].forEach((k,i)=>{
+            const el=$('mermaid'+(i+1));if(el&&data[k])el.innerHTML=`<div class="mermaid">${data[k]}</div>`
+        });
+        await mermaid.run({querySelector:'.mermaid'})
+    }catch(e){console.error(e)}
+}
+
+// ═══ 用户管理 ═══
+async function loadUsers(){
+    if(!isAdmin())return;
+    try{
+        const res=await fetch('/api/users');const data=await res.json();
+        $('usersTbody').innerHTML=(data.users||[]).map(u=>`<tr><td>${u.id}</td><td><strong>${u.username}</strong></td><td><span style="display:inline-block;padding:2px 8px;border-radius:12px;font-size:.75rem;font-weight:600;background:${u.role==='admin'?'#fee2e2':u.role==='operator'?'#dbeafe':'#f0fdf4'};color:${u.role==='admin'?'#dc2626':u.role==='operator'?'#2563eb':'#16a34a'}">${u.role}</span></td><td>${u.created_at||'-'}</td><td>${u.username!=='admin'?`<button class="btn btn-sm btn-danger" onclick="deleteUser(${u.id},'${u.username}')">删除</button>`:''}</td></tr>`).join('')
+    }catch(e){$('usersTbody').innerHTML='<tr><td colspan="5" style="color:red">加载失败: '+e.message+'</td></tr>'}
+}
+function showCreateUser(){$('createUserError').style.display='none';$('createUserOverlay').classList.add('active')}
+async function doCreateUser(){
+    const username=$('newUsername').value.trim(),password=$('newPassword').value,role=$('newRole').value;
+    if(!username||!password){$('createUserError').textContent='请填写完整';$('createUserError').style.display='';return}
+    try{
+        const res=await fetch('/api/users',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username,password,role})});
+        if(!res.ok){const e=await res.json();throw new Error(e.error)}
+        $('createUserOverlay').classList.remove('active');$('newUsername').value='';$('newPassword').value='';loadUsers()
+    }catch(e){$('createUserError').textContent=e.message;$('createUserError').style.display=''}
+}
+async function deleteUser(id,name){if(!confirm(`确认删除用户 ${name}?`))return;await fetch('/api/users/'+id,{method:'DELETE'});loadUsers()}
+
+// ═══ 初始化 ═══
+$('modalOverlay').onclick=e=>{if(e.target===$('modalOverlay'))$('modalOverlay').classList.remove('active')};
+$('loginOverlay').onclick=e=>{if(e.target===$('loginOverlay'))closeLogin()};
+mermaid.initialize({startOnLoad:false,theme:'default',securityLevel:'loose'});
+checkSession().then(()=>loadModels());
+</script>
 </body>
 </html>
