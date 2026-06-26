@@ -1,10 +1,290 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="zh-CN">
 <head>
-  <meta charset="UTF-8">
-  <title>$Title$</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>工业缺陷检测系统</title>
+    <style>
+        :root {
+            --primary-color: #2563eb;
+            --primary-hover: #1d4ed8;
+            --bg-color: #f3f4f6;
+            --card-bg: #ffffff;
+            --text-main: #1f2937;
+            --text-sub: #6b7280;
+            --border-color: #e5e7eb;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            line-height: 1.6;
+            padding: 20px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .header h1 { font-size: 2rem; margin-bottom: 8px; }
+        .header p { color: var(--text-sub); }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: 350px 1fr;
+            gap: 24px;
+        }
+
+        /* 卡片通用样式 */
+        .card {
+            background: var(--card-bg);
+            border-radius: 12px;
+            padding: 24px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+            border: 1px solid var(--border-color);
+        }
+
+        .card h3 {
+            font-size: 1.1rem;
+            margin-bottom: 16px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        /* 表单控件 */
+        .form-group { margin-bottom: 18px; }
+        .form-group label { display: block; font-weight: 600; margin-bottom: 6px; font-size: 0.9rem; }
+
+        input[type="file"] {
+            width: 100%;
+            padding: 8px;
+            border: 1px dashed var(--border-color);
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.85rem;
+        }
+
+        .slider-container { display: flex; align-items: center; gap: 10px; }
+        input[type="range"] { flex: 1; accent-color: var(--primary-color); }
+        .slider-value {
+            min-width: 40px;
+            text-align: right;
+            font-weight: bold;
+            color: var(--primary-color);
+            font-size: 0.9rem;
+        }
+
+        button#detectBtn {
+            width: 100%;
+            padding: 14px;
+            background: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            margin-top: 10px;
+        }
+        button#detectBtn:hover:not(:disabled) { background: var(--primary-hover); transform: translateY(-1px); }
+        button#detectBtn:disabled { background: #9ca3af; cursor: not-allowed; transform: none; }
+
+        /* 图片预览区 */
+        .image-wrapper {
+            width: 100%;
+            min-height: 300px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #fafafa;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+            overflow: hidden;
+        }
+        .image-wrapper img { max-width: 100%; max-height: 500px; object-fit: contain; }
+        .placeholder { color: var(--text-sub); font-size: 0.9rem; }
+
+        /* 结果统计面板 */
+        .stats-panel {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 12px;
+            margin-top: 16px;
+        }
+        .stat-item {
+            background: #eff6ff;
+            padding: 12px;
+            border-radius: 8px;
+            text-align: center;
+        }
+        .stat-item .num { font-size: 1.5rem; font-weight: bold; color: var(--primary-color); }
+        .stat-item .label { font-size: 0.8rem; color: var(--text-sub); margin-top: 4px; }
+
+        /* Loading 遮罩 */
+        .loading-overlay {
+            position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(255,255,255,0.8);
+            display: none; align-items: center; justify-content: center;
+            z-index: 1000; font-size: 1.2rem; font-weight: 600; color: var(--primary-color);
+        }
+        .loading-overlay.active { display: flex; }
+
+        @media (max-width: 900px) {
+            .container { grid-template-columns: 1fr; }
+        }
+    </style>
 </head>
 <body>
-$END$
+    <div class="header">
+        <h1>🔍 工业缺陷检测系统</h1>
+        <p>支持自定义模型上传 · 实时参数调节 · 可视化结果统计</p>
+    </div>
+
+    <div class="container">
+        <!-- 左侧控制面板 -->
+        <div class="card">
+            <h3>⚙️ 检测配置</h3>
+
+            <div class="form-group">
+                <label>模型文件 (.pt)</label>
+                <input type="file" id="modelFile" accept=".pt">
+            </div>
+
+            <div class="form-group">
+                <label>待检测图片</label>
+                <input type="file" id="imageFile" accept="image/*">
+            </div>
+
+            <div class="form-group">
+                <label>置信度阈值 (Confidence)</label>
+                <div class="slider-container">
+                    <input type="range" id="confSlider" min="0.05" max="0.95" step="0.05" value="0.25">
+                    <span class="slider-value" id="confValue">0.25</span>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>IOU 阈值 (NMS)</label>
+                <div class="slider-container">
+                    <input type="range" id="iouSlider" min="0.1" max="0.9" step="0.05" value="0.45">
+                    <span class="slider-value" id="iouValue">0.45</span>
+                </div>
+            </div>
+
+            <button id="detectBtn" disabled>🚀 开始检测</button>
+        </div>
+
+        <!-- 右侧结果展示 -->
+        <div style="display:flex; flex-direction:column; gap:24px;">
+            <div class="card">
+                <h3>🖼️ 图像对比</h3>
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px;">
+                    <div>
+                        <p style="font-size:0.85rem;color:var(--text-sub);margin-bottom:8px;">原始图片</p>
+                        <div class="image-wrapper">
+                            <img id="previewImg" style="display:none;">
+                            <span class="placeholder" id="noPreview">请先上传图片</span>
+                        </div>
+                    </div>
+                    <div>
+                        <p style="font-size:0.85rem;color:var(--text-sub);margin-bottom:8px;">检测结果</p>
+                        <div class="image-wrapper">
+                            <img id="resultImg" style="display:none;">
+                            <span class="placeholder" id="noResult">等待检测...</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <h3>📊 检测统计</h3>
+                <div class="stats-panel" id="statsPanel">
+                    <div class="stat-item"><div class="num" id="totalCount">-</div><div class="label">检出总数</div></div>
+                    <div class="stat-item"><div class="num" id="defectCount">-</div><div class="label">缺陷数量</div></div>
+                    <div class="stat-item"><div class="num" id="avgConf">-</div><div class="label">平均置信度</div></div>
+                    <div class="stat-item"><div class="num" id="inferTime">-</div><div class="label">推理耗时(ms)</div></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="loading-overlay" id="loadingOverlay">⏳ 模型推理中，请稍候...</div>
+
+    <script>
+        const $ = id => document.getElementById(id);
+        let modelFile = null, imageFile = null;
+
+        // 滑块联动
+        $('confSlider').oninput = e => $('confValue').textContent = e.target.value;
+        $('iouSlider').oninput = e => $('iouValue').textContent = e.target.value;
+
+        // 文件选择监听
+        $('modelFile').onchange = e => { modelFile = e.target.files[0]; updateBtn(); };
+        $('imageFile').onchange = e => {
+            imageFile = e.target.files[0];
+            if (imageFile) {
+                const reader = new FileReader();
+                reader.onload = ev => {
+                    $('previewImg').src = ev.target.result;
+                    $('previewImg').style.display = 'block';
+                    $('noPreview').style.display = 'none';
+                };
+                reader.readAsDataURL(imageFile);
+            }
+            updateBtn();
+        };
+
+        function updateBtn() {
+            $('detectBtn').disabled = !(modelFile && imageFile);
+        }
+
+        // 核心检测请求
+        $('detectBtn').onclick = async () => {
+            if (!modelFile || !imageFile) return;
+
+            const formData = new FormData();
+            formData.append('model', modelFile);
+            formData.append('image', imageFile);
+            formData.append('conf', $('confSlider').value);
+            formData.append('iou', $('iouSlider').value);
+
+            $('loadingOverlay').classList.add('active');
+            $('detectBtn').disabled = true;
+
+            try {
+                const response = await fetch('/upload', { method: 'POST', body: formData });
+
+                if (!response.ok) {
+                    const err = await response.json();
+                    throw new Error(err.error || '服务器返回错误');
+                }
+
+                const data = await response.json();
+
+                // 显示结果图
+                $('resultImg').src = 'data:image/jpeg;base64,' + data.image_base64;
+                $('resultImg').style.display = 'block';
+                $('noResult').style.display = 'none';
+
+                // 更新统计面板
+                $('totalCount').textContent = data.stats?.total ?? '-';
+                $('defectCount').textContent = data.stats?.defects ?? '-';
+                $('avgConf').textContent = data.stats?.avg_conf ? (data.stats.avg_conf * 100).toFixed(1) + '%' : '-';
+                $('inferTime').textContent = data.stats?.infer_ms ?? '-';
+
+            } catch (error) {
+                alert('❌ 检测失败: ' + error.message);
+            } finally {
+                $('loadingOverlay').classList.remove('active');
+                updateBtn();
+            }
+        };
+    </script>
 </body>
 </html>
