@@ -5,17 +5,22 @@ import sys
 from copy import deepcopy
 from pathlib import Path
 
-sys.path.append('./')  # to run '$ python *.py' files in subdirectories
+sys.path.append("./")  # to run '$ python *.py' files in subdirectories
 logger = logging.getLogger(__name__)
 
 import torch
 import torch.nn as nn
-
-from models.common import Conv, Bottleneck, SPP, DWConv, Focus, BottleneckCSP, Concat, NMS
-from models.experimental import MixConv2d, CrossConv, C3
-from utils.general import check_anchor_order, make_divisible, check_file, set_logging
+from models.common import NMS, SPP, Bottleneck, BottleneckCSP, Concat, Conv, DWConv, Focus
+from models.experimental import C3, CrossConv, MixConv2d
+from utils.general import check_anchor_order, check_file, make_divisible, set_logging
 from utils.torch_utils import (
-    time_synchronized, fuse_conv_and_bn, model_info, scale_img, initialize_weights, select_device)
+    fuse_conv_and_bn,
+    initialize_weights,
+    model_info,
+    scale_img,
+    select_device,
+    time_synchronized,
+)
 
 
 class Detect(nn.Module):
@@ -23,15 +28,15 @@ class Detect(nn.Module):
     export = False  # onnx export
 
     def __init__(self, nc=80, anchors=(), ch=()):  # detection layer
-        super(Detect, self).__init__()
+        super().__init__()
         self.nc = nc  # number of classes
         self.no = nc + 5  # number of outputs per anchor
         self.nl = len(anchors)  # number of detection layers
         self.na = len(anchors[0]) // 2  # number of anchors
         self.grid = [torch.zeros(1)] * self.nl  # init grid
         a = torch.tensor(anchors).float().view(self.nl, -1, 2)
-        self.register_buffer('anchors', a)  # shape(nl,na,2)
-        self.register_buffer('anchor_grid', a.clone().view(self.nl, 1, -1, 1, 1, 2))  # shape(nl,1,na,1,1,2)
+        self.register_buffer("anchors", a)  # shape(nl,na,2)
+        self.register_buffer("anchor_grid", a.clone().view(self.nl, 1, -1, 1, 1, 2))  # shape(nl,1,na,1,1,2)
         self.m = nn.ModuleList(nn.Conv2d(x, self.no * self.na, 1) for x in ch)  # output conv
 
     def forward(self, x):
@@ -48,7 +53,7 @@ class Detect(nn.Module):
                     self.grid[i] = self._make_grid(nx, ny).to(x[i].device)
 
                 y = x[i].sigmoid()
-                y[..., 0:2] = (y[..., 0:2] * 2. - 0.5 + self.grid[i].to(x[i].device)) * self.stride[i]  # xy
+                y[..., 0:2] = (y[..., 0:2] * 2.0 - 0.5 + self.grid[i].to(x[i].device)) * self.stride[i]  # xy
                 y[..., 2:4] = (y[..., 2:4] * 2) ** 2 * self.anchor_grid[i]  # wh
                 z.append(y.view(bs, -1, self.no))
 
@@ -61,20 +66,21 @@ class Detect(nn.Module):
 
 
 class Model(nn.Module):
-    def __init__(self, cfg='yolov5s.yaml', ch=3, nc=None):  # model, input channels, number of classes
-        super(Model, self).__init__()
+    def __init__(self, cfg="yolov5s.yaml", ch=3, nc=None):  # model, input channels, number of classes
+        super().__init__()
         if isinstance(cfg, dict):
             self.yaml = cfg  # model dict
         else:  # is *.yaml
             import yaml  # for torch hub
+
             self.yaml_file = Path(cfg).name
             with open(cfg) as f:
                 self.yaml = yaml.load(f, Loader=yaml.FullLoader)  # model dict
 
         # Define model
-        if nc and nc != self.yaml['nc']:
-            print('Overriding model.yaml nc=%g with nc=%g' % (self.yaml['nc'], nc))
-            self.yaml['nc'] = nc  # override yaml value
+        if nc and nc != self.yaml["nc"]:
+            print("Overriding model.yaml nc={:g} with nc={:g}".format(self.yaml["nc"], nc))
+            self.yaml["nc"] = nc  # override yaml value
         self.model, self.save = parse_model(deepcopy(self.yaml), ch=[ch])  # model, savelist, ch_out
         # print([x.shape for x in self.forward(torch.zeros(1, ch, 64, 64))])
 
@@ -92,7 +98,7 @@ class Model(nn.Module):
         # Init weights, biases
         initialize_weights(self)
         self.info()
-        print('')
+        print("")
 
     def forward(self, x, augment=False, profile=False):
         if augment:
@@ -124,21 +130,22 @@ class Model(nn.Module):
             if profile:
                 try:
                     import thop
-                    o = thop.profile(m, inputs=(x,), verbose=False)[0] / 1E9 * 2  # FLOPS
+
+                    o = thop.profile(m, inputs=(x,), verbose=False)[0] / 1e9 * 2  # FLOPS
                 except:
                     o = 0
                 t = time_synchronized()
                 for _ in range(10):
                     _ = m(x)
                 dt.append((time_synchronized() - t) * 100)
-                print('%10.1f%10.0f%10.1fms %-40s' % (o, m.np, dt[-1], m.type))
+                print("%10.1f%10.0f%10.1fms %-40s" % (o, m.np, dt[-1], m.type))
             x = m(x)  # run
-            #print('层数：',i,'特征图大小：',x.shape)
-            i+=1
+            # print('层数：',i,'特征图大小：',x.shape)
+            i += 1
             y.append(x if m.i in self.save else None)  # save output
 
         if profile:
-            print('%.1fms total' % sum(dt))
+            print(f"{sum(dt):.1f}ms total")
         return x
 
     def _initialize_biases(self, cf=None):  # initialize biases into Detect(), cf is class frequency
@@ -154,7 +161,7 @@ class Model(nn.Module):
         m = self.model[-1]  # Detect() module
         for mi in m.m:  # from
             b = mi.bias.detach().view(m.na, -1).T  # conv.bias(255) to (3,85)
-            print(('%6g Conv2d.bias:' + '%10.3g' * 6) % (mi.weight.shape[1], *b[:5].mean(1).tolist(), b[5:].mean()))
+            print(("%6g Conv2d.bias:" + "%10.3g" * 6) % (mi.weight.shape[1], *b[:5].mean(1).tolist(), b[5:].mean()))
 
     # def _print_weights(self):
     #     for m in self.model.modules():
@@ -162,23 +169,23 @@ class Model(nn.Module):
     #             print('%10.3g' % (m.w.detach().sigmoid() * 2))  # shortcut weights
 
     def fuse(self):  # fuse model Conv2d() + BatchNorm2d() layers
-        print('Fusing layers... ')
+        print("Fusing layers... ")
         for m in self.model.modules():
-            if type(m) is Conv and hasattr(m, 'bn'):
-                m._non_persistent_buffers_set = set()  # pytorch 1.6.0 compatability
+            if type(m) is Conv and hasattr(m, "bn"):
+                m._non_persistent_buffers_set = set()  # pytorch 1.6.0 compatibility
                 m.conv = fuse_conv_and_bn(m.conv, m.bn)  # update conv
-                delattr(m, 'bn')  # remove batchnorm
+                delattr(m, "bn")  # remove batchnorm
                 m.forward = m.fuseforward  # update forward
         self.info()
         return self
 
     def add_nms(self):  # fuse model Conv2d() + BatchNorm2d() layers
         if type(self.model[-1]) is not NMS:  # if missing NMS
-            print('Adding NMS module... ')
+            print("Adding NMS module... ")
             m = NMS()  # module
             m.f = -1  # from
             m.i = self.model[-1].i + 1  # index
-            self.model.add_module(name='%s' % m.i, module=m)  # add
+            self.model.add_module(name=f"{m.i}", module=m)  # add
         return self
 
     def info(self, verbose=False):  # print model information
@@ -186,13 +193,13 @@ class Model(nn.Module):
 
 
 def parse_model(d, ch):  # model_dict, input_channels(3)
-    logger.info('\n%3s%18s%3s%10s  %-40s%-30s' % ('', 'from', 'n', 'params', 'module', 'arguments'))
-    anchors, nc, gd, gw = d['anchors'], d['nc'], d['depth_multiple'], d['width_multiple']
+    logger.info("\n%3s%18s%3s%10s  %-40s%-30s" % ("", "from", "n", "params", "module", "arguments"))
+    anchors, nc, gd, gw = d["anchors"], d["nc"], d["depth_multiple"], d["width_multiple"]
     na = (len(anchors[0]) // 2) if isinstance(anchors, list) else anchors  # number of anchors
     no = na * (nc + 5)  # number of outputs = anchors * (classes + 5)
 
     layers, save, c2 = [], [], ch[-1]  # layers, savelist, ch out
-    for i, (f, n, m, args) in enumerate(d['backbone'] + d['head']):  # from, number, module, args
+    for i, (f, n, m, args) in enumerate(d["backbone"] + d["head"]):  # from, number, module, args
         m = eval(m) if isinstance(m, str) else m  # eval strings
         for j, a in enumerate(args):
             try:
@@ -238,20 +245,20 @@ def parse_model(d, ch):  # model_dict, input_channels(3)
             c2 = ch[f]
 
         m_ = nn.Sequential(*[m(*args) for _ in range(n)]) if n > 1 else m(*args)  # module
-        t = str(m)[8:-2].replace('__main__.', '')  # module type
+        t = str(m)[8:-2].replace("__main__.", "")  # module type
         np = sum([x.numel() for x in m_.parameters()])  # number params
         m_.i, m_.f, m_.type, m_.np = i, f, t, np  # attach index, 'from' index, type, number params
-        logger.info('%3s%18s%3s%10.0f  %-40s%-30s' % (i, f, n, np, t, args))  # print
+        logger.info("%3s%18s%3s%10.0f  %-40s%-30s" % (i, f, n, np, t, args))  # print
         save.extend(x % i for x in ([f] if isinstance(f, int) else f) if x != -1)  # append to savelist
         layers.append(m_)
         ch.append(c2)
     return nn.Sequential(*layers), sorted(save)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument('--cfg', type=str, default='yolov5s.yaml', help='model.yaml')
-    parser.add_argument('--device', default='', help='cuda device, i.e. 0 or 0,1,2,3 or cpu')
+    parser.add_argument("--cfg", type=str, default="yolov5s.yaml", help="model.yaml")
+    parser.add_argument("--device", default="", help="cuda device, i.e. 0 or 0,1,2,3 or cpu")
     opt = parser.parse_args()
     opt.cfg = check_file(opt.cfg)  # check file
     set_logging()
