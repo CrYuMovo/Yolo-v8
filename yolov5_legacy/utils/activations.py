@@ -1,10 +1,10 @@
 import torch
-import torch.nn as nn
 import torch.nn.functional as F
+from torch import nn
 
 
 # Swish https://arxiv.org/pdf/1905.02244.pdf ---------------------------------------------------------------------------
-class Swish(nn.Module):  #
+class Swish(nn.Module):
     @staticmethod
     def forward(x):
         return x * torch.sigmoid(x)
@@ -14,7 +14,7 @@ class Hardswish(nn.Module):  # export-friendly version of nn.Hardswish()
     @staticmethod
     def forward(x):
         # return x * F.hardsigmoid(x)  # for torchscript and CoreML
-        return x * F.hardtanh(x + 3, 0., 6.) / 6.  # for torchscript, CoreML and ONNX
+        return x * F.hardtanh(x + 3, 0.0, 6.0) / 6.0  # for torchscript, CoreML and ONNX
 
 
 class MemoryEfficientSwish(nn.Module):
